@@ -17,6 +17,11 @@ def _load_float_list(values: List[float]) -> List[float]:
     return [float(v) for v in values]
 
 
+def _wrap_angle(angle: float) -> float:
+    """Wrap angle to [-pi, pi] range to avoid PhysX ±2π limit."""
+    return math.atan2(math.sin(angle), math.cos(angle))
+
+
 class KiwiBaseController(Node):
     """Converts /cmd_vel into wheel joint commands for the Kiwi base."""
 
@@ -130,16 +135,12 @@ class KiwiBaseController(Node):
             dt = (now - self._last_publish_time).nanoseconds * 1e-9
         self._last_publish_time = now
 
-        positions = list(self._wheel_positions)
-        if dt > 0.0:
-            for idx, speed in enumerate(wheel_speeds):
-                positions[idx] += speed * dt
-        self._wheel_positions = positions
-
+        # For continuous wheel joints, use velocity control only (no position)
+        # Position control causes PhysX ±2π limit errors
         msg = JointState()
         msg.header.stamp = now.to_msg()
         msg.name = self._joint_names
-        msg.position = positions
+        msg.position = []  # Empty - velocity control only
         msg.velocity = wheel_speeds
 
         self._js_pub.publish(msg)
