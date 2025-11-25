@@ -2,24 +2,30 @@ joint_limits:
   STS3215_03a_v1_Revolute_45:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0
   STS3215_03a_v1_1_Revolute_49:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0
   STS3215_03a_v1_2_Revolute_51:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0
   STS3215_03a_v1_3_Revolute_53:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0
   STS3215_03a_Wrist_Roll_v1_Revolute_55:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0
   STS3215_03a_v1_4_Revolute_57:
     has_velocity_limits: true
     max_velocity: 1.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 1.0

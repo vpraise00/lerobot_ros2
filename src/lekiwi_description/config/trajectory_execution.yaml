@@ -7,7 +7,7 @@ moveit_simple_controller_manager:
   controller_names:
     - lekiwi_arm_controller
   lekiwi_arm_controller:
-    action_ns: lekiwi_arm_controller/follow_joint_trajectory
+    action_ns: follow_joint_trajectory
     type: FollowJointTrajectory
     default: true
     joints:

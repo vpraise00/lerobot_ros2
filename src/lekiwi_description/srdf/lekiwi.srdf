@@ -68,4 +68,51 @@
   <disable_collisions link1="Wrist_Roll_08c_v1" link2="STS3215_03a_v1_4" reason="Adjacent" />
   <disable_collisions link1="STS3215_03a_v1_4" link2="Moving_Jaw_08d_v1" reason="Adjacent" />
 
+  <!-- Base / accessory collision relaxations (static structure; avoid false self-collision) -->
+  <disable_collisions link1="Base_08q_v1" link2="Passive_Horn_01_v1" reason="Fixed" />
+  <disable_collisions link1="Base_08q_v1" link2="Rotation_Pitch_08i_v1" reason="Fixed" />
+  <disable_collisions link1="Base_08q_v1" link2="STS3215_03a_v1" reason="Fixed" />
+  <disable_collisions link1="Base_08q_v1" link2="WaveShare_Mounting_Plate_01d_v1" reason="Fixed" />
+  <disable_collisions link1="Battery___Battery_5_2_Ah_DC5521_Plug_v2" link2="lipo_battery_mount_v3" reason="Fixed" />
+  <disable_collisions link1="Bottom_V2_v3" link2="Top_V2_v2" reason="Fixed" />
+  <disable_collisions link1="Camera_Model_v3" link2="Camera_Mount_v8" reason="Fixed" />
+  <disable_collisions link1="Camera_Model_v3_1" link2="Wrist_Camera_Mount_v11" reason="Fixed" />
+  <disable_collisions link1="Camera_Mount_v8" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="Moving_Jaw_08d_v1" link2="Wrist_Camera_Mount_v11" reason="Fixed" />
+  <disable_collisions link1="Passive_Horn_01_v1" link2="Rotation_Pitch_08i_v1" reason="Fixed" />
+  <disable_collisions link1="Rotation_Pitch_08i_v1" link2="SO_ARM100_08k_Asym_Mirror_Clip_v1" reason="Fixed" />
+  <disable_collisions link1="Rotation_Pitch_08i_v1" link2="STS3215_03a_v1" reason="Fixed" />
+  <disable_collisions link1="Rotation_Pitch_08i_v1" link2="STS3215_03a_v1_1" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1" link2="drive_motor_mount_v11" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1" link2="omni_wheel_mount_v5" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1_1" link2="drive_motor_mount_v11_1" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1_1" link2="omni_wheel_mount_v5_1" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1_2" link2="drive_motor_mount_v11_2" reason="Fixed" />
+  <disable_collisions link1="ST3215_Servo_Motor_v1_2" link2="omni_wheel_mount_v5_2" reason="Fixed" />
+  <disable_collisions link1="Wrist_Camera_Mount_v11" link2="Wrist_Roll_08c_v1" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1" link2="base_plate_layer2_v3" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1" link2="omni_wheel_mount_v5" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1_1" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1_1" link2="base_plate_layer2_v3" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1_1" link2="omni_wheel_mount_v5_1" reason="Fixed" />
+  <disable_collisions link1="a_4_Omni_Directional_Wheel_Single_Body_v1_2" link2="omni_wheel_mount_v5_2" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff" link2="base_plate_layer2_v3" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_1" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_1" link2="base_plate_layer2_v3" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_2" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_3" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_3" link2="omni_wheel_mount_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_4" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_4" link2="base_plate_layer2_v3" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_4" link2="omni_wheel_mount_v5_1" reason="Fixed" />
+  <disable_collisions link1="a_94868A713_NO_THREADS_Female_Threaded_Hex_Standoff_5" link2="base_plate_layer1_v5" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="drive_motor_mount_v11" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="drive_motor_mount_v11_2" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="lipo_battery_mount_v3" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="omni_wheel_mount_v5" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="omni_wheel_mount_v5_1" reason="Fixed" />
+  <disable_collisions link1="base_plate_layer1_v5" link2="servo_controller_mount_v3" reason="Fixed" />
+
 </robot>

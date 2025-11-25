@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 from typing import List, Sequence, Tuple
+import time
 
 import rclpy
 from control_msgs.action import FollowJointTrajectory
@@ -42,6 +42,7 @@ class TrajectoryExecutor(Node):
         self._goal_tolerance = float(self.get_parameter("goal_tolerance").value)
 
         self._current_positions = [0.0 for _ in self._joint_names]
+        self._last_goal_mapping: List[int] | None = None  # incoming joint order → executor order
         qos = QoSProfile(depth=10)
         qos.reliability = QoSReliabilityPolicy.RELIABLE
         qos.history = QoSHistoryPolicy.KEEP_LAST
@@ -70,21 +71,23 @@ class TrajectoryExecutor(Node):
         if not goal.trajectory.points:
             self.get_logger().warning("Rejecting trajectory goal with no points")
             return GoalResponse.REJECT
-        if list(goal.trajectory.joint_names) != self._joint_names:
-            self.get_logger().warning("Rejecting trajectory goal with mismatched joint order.")
+        incoming = list(goal.trajectory.joint_names)
+        if set(incoming) != set(self._joint_names):
+            self.get_logger().warning("Rejecting trajectory goal with mismatched joint set.")
             return GoalResponse.REJECT
+        # Build mapping once per goal; reorder points later
+        self._last_goal_mapping = [incoming.index(jn) for jn in self._joint_names]
         return GoalResponse.ACCEPT
 
     def _cancel_callback(self, _goal_handle) -> CancelResponse:
         self.get_logger().info("Received cancel request for trajectory goal.")
         return CancelResponse.ACCEPT
 
-    async def _execute_callback(self, goal_handle) -> FollowJointTrajectory.Result:
+    def _execute_callback(self, goal_handle) -> FollowJointTrajectory.Result:
         goal = goal_handle.request
         traj_points = self._prepare_points(goal.trajectory.points)
         publish_period = 1.0 / self._publish_rate
 
-        start_time = self.get_clock().now()
         total_time = traj_points[-1].time_from_start
 
         feedback = FollowJointTrajectory.Feedback()
@@ -111,7 +114,7 @@ class TrajectoryExecutor(Node):
             feedback.error = JointTrajectoryPoint()
             goal_handle.publish_feedback(feedback)
 
-            await asyncio.sleep(publish_period)
+            time.sleep(publish_period)
             t += publish_period
 
         # Final point to make sure we exactly match goal
@@ -157,14 +160,22 @@ class TrajectoryExecutor(Node):
             prepared.append(
                 _TrajectoryPoint(
                     time_from_start=t,
-                    positions=_ensure_length(pt.positions, self._joint_names, self._current_positions),
-                    velocities=_ensure_length(pt.velocities, self._joint_names, None),
+                    positions=self._remap(_ensure_length(pt.positions, self._joint_names, self._current_positions)),
+                    velocities=self._remap(_ensure_length(pt.velocities, self._joint_names, None)),
                 )
             )
 
         if not prepared:
             raise ValueError("Trajectory must contain at least one point.")
         return prepared
+
+    def _remap(self, values: Sequence[float] | None) -> List[float]:
+        """Reorder incoming values into the executor's joint order using the last goal mapping."""
+        if values is None:
+            return [0.0 for _ in self._joint_names]
+        if self._last_goal_mapping is None:
+            return list(values)
+        return [values[i] for i in self._last_goal_mapping]
 
     def _sample(self, points: Sequence[_TrajectoryPoint], current_time: float) -> Tuple[List[float], List[float]]:
         if current_time <= points[0].time_from_start:
