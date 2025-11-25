@@ -56,6 +56,7 @@ source ~/workspace/lerobot_ros2/install/setup.bash
 - RViz만: `./lekiwi_playground/start_moveit2_rviz.sh`
 - RViz Fixed Frame: `base_plate_layer1_v5`
 - 필요 시 planning scene 브리지: `./lekiwi_playground/start_planning_scene_bridge.sh`
+- 베이스 키보드 텔레옵(팔/MoveIt 없이): `./lekiwi_playground/start_base_teleop.sh` + `./lekiwi_playground/start_keyboard_teleop.sh` (자세히: [LeKiwi_Base_Teleop.md](./LeKiwi_Base_Teleop.md), 기본 USE_SIM_TIME=false)
 
 ## 6) 빠른 점검
 - `/joint_states` 수신: `ros2 topic echo /joint_states`
