@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>lekiwi_moveit2</name>
+  <version>0.1.0</version>
+  <description>MoveIt2 configuration for the LeKiwi arm.</description>
+  <maintainer email="todo@example.com">TODO</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>moveit_configs_utils</depend>
+  <depend>moveit_ros_move_group</depend>
+  <depend>moveit_servo</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>lekiwi_description</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

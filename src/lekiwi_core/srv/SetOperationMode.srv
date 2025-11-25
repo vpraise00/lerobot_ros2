@@ -1,0 +1,19 @@
+# Service to set robot operation mode
+
+# Request
+uint8 OPERATION_MODE_IDLE = 0
+uint8 OPERATION_MODE_NAVIGATION = 1
+uint8 OPERATION_MODE_MANIPULATION = 2
+uint8 OPERATION_MODE_COORDINATED = 3
+uint8 OPERATION_MODE_EMERGENCY = 255
+
+uint8 mode  # Desired operation mode
+string reason # Optional reason for mode change
+
+---
+
+# Response
+bool success
+string message  # Result message or error description
+uint8 previous_mode  # Mode before this change
+uint8 current_mode   # Mode after this change

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>lekiwi_perception</name>
+  <version>0.1.0</version>
+  <description>Perception utilities for streaming LeKiwi camera data from Isaac Sim into ROS 2.</description>
+  <maintainer email="vpraise@example.com">vpraise</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>setuptools</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>message_filters</depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>image_proc</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

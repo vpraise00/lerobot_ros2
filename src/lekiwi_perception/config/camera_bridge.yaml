@@ -1,0 +1,9 @@
+lekiwi_camera_bridge:
+  ros__parameters:
+    camera_frame_id: lekiwi_camera_front_optical_frame
+    input_image_topic: /lekiwi/camera/front/image_raw
+    input_info_topic: /lekiwi/camera/front/camera_info
+    output_image_topic: /lekiwi/perception/front/image_raw
+    output_info_topic: /lekiwi/perception/front/camera_info
+    queue_size: 20
+    approx_sync_tolerance: 0.05

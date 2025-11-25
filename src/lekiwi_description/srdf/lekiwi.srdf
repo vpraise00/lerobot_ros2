@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<robot name="LeKiwi">
+  <!-- Virtual Joint: world → base for planning -->
+  <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="base_plate_layer1_v5"/>
+
+  <!-- Planning Groups -->
+  <group name="base">
+    <joint name="ST3215_Servo_Motor_v1_2_Revolute_60" />
+    <joint name="ST3215_Servo_Motor_v1_1_Revolute_62" />
+    <joint name="ST3215_Servo_Motor_v1_Revolute_64" />
+  </group>
+
+  <group name="arm">
+    <joint name="STS3215_03a_v1_Revolute_45" />
+    <joint name="STS3215_03a_v1_1_Revolute_49" />
+    <joint name="STS3215_03a_v1_2_Revolute_51" />
+    <joint name="STS3215_03a_v1_3_Revolute_53" />
+    <joint name="STS3215_03a_Wrist_Roll_v1_Revolute_55" />
+    <joint name="STS3215_03a_v1_4_Revolute_57" />
+  </group>
+
+  <group name="whole_body">
+    <group name="base" />
+    <group name="arm" />
+  </group>
+
+  <!-- End Effector -->
+  <end_effector name="ee" parent_link="Moving_Jaw_08d_v1" group="arm" />
+
+  <!-- Group States -->
+  <group_state name="home" group="arm">
+    <joint name="STS3215_03a_v1_Revolute_45" value="0.0" />
+    <joint name="STS3215_03a_v1_1_Revolute_49" value="0.0" />
+    <joint name="STS3215_03a_v1_2_Revolute_51" value="0.0" />
+    <joint name="STS3215_03a_v1_3_Revolute_53" value="0.0" />
+    <joint name="STS3215_03a_Wrist_Roll_v1_Revolute_55" value="0.0" />
+    <joint name="STS3215_03a_v1_4_Revolute_57" value="0.0" />
+  </group_state>
+
+  <group_state name="tucked" group="arm">
+    <joint name="STS3215_03a_v1_Revolute_45" value="0.0" />
+    <joint name="STS3215_03a_v1_1_Revolute_49" value="-1.57" />
+    <joint name="STS3215_03a_v1_2_Revolute_51" value="1.57" />
+    <joint name="STS3215_03a_v1_3_Revolute_53" value="0.0" />
+    <joint name="STS3215_03a_Wrist_Roll_v1_Revolute_55" value="0.0" />
+    <joint name="STS3215_03a_v1_4_Revolute_57" value="0.0" />
+  </group_state>
+
+  <group_state name="navigation_ready" group="arm">
+    <joint name="STS3215_03a_v1_Revolute_45" value="0.0" />
+    <joint name="STS3215_03a_v1_1_Revolute_49" value="-0.785" />
+    <joint name="STS3215_03a_v1_2_Revolute_51" value="0.785" />
+    <joint name="STS3215_03a_v1_3_Revolute_53" value="0.0" />
+    <joint name="STS3215_03a_Wrist_Roll_v1_Revolute_55" value="0.0" />
+    <joint name="STS3215_03a_v1_4_Revolute_57" value="0.0" />
+  </group_state>
+
+  <!-- Minimal disable collisions (adjacent arm links) -->
+  <disable_collisions link1="STS3215_03a_v1" link2="SO_ARM100_08k_Asym_Mirror_Clip_v1" reason="Adjacent" />
+  <disable_collisions link1="SO_ARM100_08k_Asym_Mirror_Clip_v1" link2="STS3215_03a_v1_1" reason="Adjacent" />
+  <disable_collisions link1="STS3215_03a_v1_1" link2="SO_ARM100_08k_116_Square_v1" reason="Adjacent" />
+  <disable_collisions link1="SO_ARM100_08k_116_Square_v1" link2="STS3215_03a_v1_2" reason="Adjacent" />
+  <disable_collisions link1="STS3215_03a_v1_2" link2="SO_ARM100_08k_Mirror_v1" reason="Adjacent" />
+  <disable_collisions link1="SO_ARM100_08k_Mirror_v1" link2="STS3215_03a_v1_3" reason="Adjacent" />
+  <disable_collisions link1="STS3215_03a_v1_3" link2="Wrist_Roll_Pitch_08i_v1" reason="Adjacent" />
+  <disable_collisions link1="Wrist_Roll_Pitch_08i_v1" link2="STS3215_03a_Wrist_Roll_v1" reason="Adjacent" />
+  <disable_collisions link1="STS3215_03a_Wrist_Roll_v1" link2="Wrist_Roll_08c_v1" reason="Adjacent" />
+  <disable_collisions link1="Wrist_Roll_08c_v1" link2="STS3215_03a_v1_4" reason="Adjacent" />
+  <disable_collisions link1="STS3215_03a_v1_4" link2="Moving_Jaw_08d_v1" reason="Adjacent" />
+
+</robot>

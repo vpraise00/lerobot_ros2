@@ -1,0 +1,26 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+    use_sim_time: true
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    lekiwi_base_controller:
+      type: forward_command_controller/ForwardCommandController
+      joints:
+        - ST3215_Servo_Motor_v1_2_Revolute_60
+        - ST3215_Servo_Motor_v1_1_Revolute_62
+        - ST3215_Servo_Motor_v1_Revolute_64
+    lekiwi_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+      joints:
+        - STS3215_03a_v1_Revolute_45
+        - STS3215_03a_v1_1_Revolute_49
+        - STS3215_03a_v1_2_Revolute_51
+        - STS3215_03a_v1_3_Revolute_53
+        - STS3215_03a_Wrist_Roll_v1_Revolute_55
+        - STS3215_03a_v1_4_Revolute_57
+      command_interfaces:
+        - position
+      state_interfaces:
+        - position
+        - velocity

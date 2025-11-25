@@ -1,0 +1,250 @@
+# LeKiwi Isaac + ROS 2 Integration Guide
+
+이 문서는 **기존 `lerobot_ros2` 워크플로우를 해치지 않고**, LeKiwi 모바일 매니퓰레이터를 Isaac Sim + Nav2 + MoveIt2와 통합하는 전체 절차를 설명합니다. 모든 확장은 `lekiwi_*` 패키지 / 스크립트로 분리되어 있으므로, 기존 Lerobot 파이프라인과 충돌하지 않습니다.
+
+---
+
+## 1. Prerequisites
+
+| 항목 | 값 |
+| --- | --- |
+| OS | Ubuntu 22.04 |
+| ROS 2 | Jazzy ( `/opt/ros/jazzy` 권장 ) |
+| Workspace root | `<LEROBOT_ROS2_ROOT> = ~/workspace/lerobot_ros2` |
+| Isaac Sim | `~/workspace/isaac-sim` (다른 경로라면 `ISAAC_SIM_PATH` 환경변수) |
+
+초기 빌드:
+
+```bash
+cd ~/workspace/lerobot_ros2
+source /opt/ros/jazzy/setup.bash
+colcon build --base-paths src    # 루트의 pip 패키지는 건너뛰기 위함
+source install/setup.bash
+```
+
+---
+
+## 2. 신규 패키지 & 스크립트 개요
+
+| 구성 | 역할 |
+| --- | --- |
+| `lekiwi_description` | URDF/SRDF (Isaac 원본을 그대로 설치) |
+| `lekiwi_bringup` | robot_state_publisher + (옵션) `lekiwi_isaac_bridge` |
+| `lekiwi_isaac_bridge` | `/joint_commands`(`Float64MultiArray`) ↔ `/joint_command`(`JointState`) 변환 |
+| `lekiwi_perception` | Isaac 카메라 토픽을 Nav2/VSLAM에 맞게 릴레이 (`camera_bridge_node`) |
+| `lekiwi_base_control` | `/cmd_vel` → Kiwi 3륜 역기구학 → `/joint_command` |
+| `lekiwi_nav2` | Nav2 + SLAM launch (신규 `lekiwi_nav2_with_kiwi.launch.py`) |
+| `lekiwi_trajectory_bridge` | FollowJointTrajectory 액션 서버 → `/joint_command` 스트리밍 |
+| `lekiwi_moveit2` | MoveGroup + RViz (`moveit_with_executor.launch.py`에서 위 브리지 자동 실행) |
+
+`lekiwi_playground/` 안의 실행 스크립트는 모든 환경변수/경로를 자동으로 설정합니다.
+
+```
+lekiwi_playground/
+├── start_isaac_sim.sh
+├── start_lekiwi_bringup.sh
+├── start_lekiwi_bridge.sh
+├── start_lekiwi_nav2.sh        # Nav2 + Kiwi base controller
+├── start_lekiwi_moveit2.sh     # MoveIt + trajectory executor
+├── start_lekiwi_perception.sh  # 카메라 브리지
+└── lekiwi_spin.sh              # JointState 사인파 퍼블리셔 (테스트용)
+```
+
+---
+
+## 3. Isaac Sim 설정
+
+1. Isaac Sim 실행 (`./lekiwi_playground/start_isaac_sim.sh` 또는 직접 실행).
+2. 확장(Extensions)에서 `isaacsim.ros2.bridge` 를 활성화.
+3. Scene 에 `/World/LeKiwi` articulation 이 로드되어 있어야 함 (예: `kiwi_kitchen.usd`).
+4. **Action Graph 자동 구성** – Script Editor (`Window → Script Editor`) 에서 아래 스크립트 실행:
+
+| 스크립트 | 기능 |
+| --- | --- |
+| `scripts/lekiwi/set_lekiwi_cameras.py` | 모델링 prim(`/Camera_Model_v3(_1)`) 아래에 실제 Camera prim 생성 |
+| `scripts/lekiwi/set_omnigraph_jointstate.py` | `/joint_command` JointState → Articulation Controller, `/joint_states` Publish |
+| `scripts/lekiwi/set_omnigraph_trajectory.py` | (옵션) Isaac 내 Trajectory 재생용 그래프 |
+| `scripts/lekiwi/set_omnigraph_camera.py` | 새 카메라 prim과 RenderProduct/ROS2CameraHelper 연결 |
+
+> 모든 Script Editor 전용 Python 스크립트는 `scripts/lekiwi/` 디렉터리에 모여 있으니 동일 경로에서 실행하면 된다.
+
+> `set_omnigraph_camera.py` 는 `/World/LeKiwi` 하위의 첫 번째 Camera prim을 자동으로 검색하여, `ROS2CameraHelper`와 연결된 Render Product 를 생성합니다. frame_id 는 `lekiwi_camera_front_optical_frame` 로 고정됩니다.
+
+### 3.1 LeKiwi 카메라 prim 준비 (Step 1)
+
+1. Script Editor (`Window → Script Editor`) 에서  
+   `python scripts/lekiwi/set_lekiwi_cameras.py` 실행  
+   → `/World/LeKiwi/Camera_Model_v3(_1)` 밑에 실제 `Camera` child 자동 생성.
+   - v3 카메라는 RotateXYZ = (90°, 100°, 0°), v3_1 카메라는 (-15°, -120°, 0°) 로 자동 정렬되어 시야 방향이 일정하다.
+   - 생성/갱신된 Camera prim 의 `visibility` 는 `invisible` 로 설정되어, 장면에는 mesh(`Camera_Model_*`)만 표시된다.
+2. 이미 존재하면 “Camera already exists …” 로그만 출력하고 종료되므로 여러 번 실행해도 안전하다.
+3. 생성된 Camera 는 640×480, 약 60° FOV, clip 0.01–200 m 기본값을 갖는다 (필요 시 USD Inspector 로 직접 수정).
+
+### 3.2 Action Graph 구성 (Step 2/3)
+
+1. **Step 2 – Camera OG**  
+   `python scripts/lekiwi/set_omnigraph_camera.py` 실행  
+   → `/World/LeKiwi/Camera_Model_v3/Camera` (존재하면 우선 사용, 두 번째 카메라는 로그 안내) 를 RenderProduct + `ROS2CameraHelper`와 연결하여 `/lekiwi/camera/front/*` 토픽을 퍼블리시.  
+   두 경로 모두 없으면 `/World/LeKiwi` 전체에서 첫 번째 Camera prim을 찾아 fallback 하며, 어떤 경로가 선택됐는지 콘솔에 출력한다.
+2. **Step 3 – Joint/Trajectory OG**  
+   JointState 제어: `python scripts/lekiwi/set_omnigraph_jointstate.py`  
+   Trajectory 제어(옵션): `python scripts/lekiwi/set_omnigraph_trajectory.py`
+
+그래프 생성이 끝나면 `File → Save` 로 씬을 저장해 두면 이후 재실행 시 그대로 유지된다.
+
+---
+
+## 4. 4-터미널 실행 시나리오
+
+| 터미널 | 실행 스크립트 | 주요 노드 |
+| --- | --- | --- |
+| 1 | `./lekiwi_playground/start_isaac_sim.sh` | Isaac Sim + Action Graph |
+| 2 | `./lekiwi_playground/start_lekiwi_bringup.sh` | robot_state_publisher (+ 선택적 `lekiwi_isaac_bridge`) |
+| 3 | `./lekiwi_playground/start_lekiwi_nav2.sh` | `nav2_bringup` + `slam_toolbox` + Kiwi base controller |
+| 4 | `./lekiwi_playground/start_lekiwi_moveit2.sh` | MoveGroup + RViz + Trajectory executor |
+
+선택: `./lekiwi_playground/start_lekiwi_perception.sh` 로 카메라 브리지/rectify 파이프라인 실행.
+
+각 스크립트는 `/opt/ros/$ROS_DISTRO/setup.bash` 와 `install/setup.bash` 를 자동으로 source 합니다. `--legacy` 옵션을 붙이면 신규 확장 없이 기존 launch 만 실행합니다.
+
+---
+
+## 5. 터미널별 상세
+
+### 5.1 터미널 2 – Bringup
+
+```
+./lekiwi_playground/start_lekiwi_bringup.sh
+```
+
+- `lekiwi_bringup/lekiwi_sim_bringup.launch.py` 실행
+- 구성: `robot_state_publisher` + (옵션) `lekiwi_isaac_bridge`
+- `start_bridge:=true` 가 기본값이라 `/joint_commands` → `/joint_command` 변환이 항상 활성화됩니다.
+
+### 5.2 터미널 3 – Nav2 + Kiwi 베이스
+
+```
+./lekiwi_playground/start_lekiwi_nav2.sh
+```
+
+- `lekiwi_nav2_with_kiwi.launch.py`:
+  - `nav2_bringup/navigation_launch.py`
+  - `slam_toolbox/async_slam_toolbox_node`
+  - `lekiwi_base_control` 패키지의 `lekiwi_kiwi_base_controller`
+- Kiwi 베이스 제어:
+
+  \[
+  \omega_i = \frac{1}{r} \left(-\sin\theta_i \cdot v_x + \cos\theta_i \cdot v_y + L \cdot \omega_z \right)
+  \]
+
+  - `wheel_angles_deg`: `[0, 120, 240]`
+  - `wheel_radius = 0.055 m`, `base_radius = 0.25 m`
+  - `publish_rate = 100 Hz`, `command_timeout = 0.5 s`
+  - JointState `position` 필드를 적분하여 Isaac 관절에 전달하고, `velocity` 로도 동일 값 전송
+- Jazzy에서는 모든 Nav2/컨트롤러 파라미터 YAML이 `ros__parameters` 루트 아래 있어야 하므로, `lekiwi_base_control/config/kiwi_base_controller.yaml` 과 `lekiwi_nav2/config/nav2_params.yaml` 을 그대로 사용하면 형식 오류가 나지 않는다.
+
+테스트:
+
+```bash
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist '{linear: {x:0.2, y:0.0, z:0.0}, angular: {z:0.2}}' -r 5
+```
+
+Isaac 내에서 휠이 회전하면 성공입니다.
+
+### 5.3 터미널 4 – MoveIt2 + Trajectory Executor
+
+```
+./lekiwi_playground/start_lekiwi_moveit2.sh
+```
+
+- `lekiwi_moveit2/moveit_with_executor.launch.py`:
+  - MoveGroup (`moveit_ros_move_group`)
+  - RViz2 (사전 구성된 `config/moveit.rviz`)
+  - `lekiwi_trajectory_bridge/trajectory_executor.launch.py`
+- Trajectory executor
+  - 액션 서버: `/lekiwi_arm_controller/follow_joint_trajectory`
+  - 입력: MoveIt이 Publish 하는 FollowJointTrajectory Goal
+  - 200 Hz 로 JointState 명령을 `/joint_command` 에 퍼블리시 (JointState Subscriber → Isaac Articulation Controller)
+  - Goal/Path tolerance를 검사해 성공/실패 리포트
+
+수동 테스트:
+
+```bash
+ros2 action send_goal /lekiwi_arm_controller/follow_joint_trajectory \
+  control_msgs/action/FollowJointTrajectory \
+  "{trajectory: {joint_names: [
+      'STS3215_03a_v1_Revolute_45',
+      'STS3215_03a_v1_1_Revolute_49',
+      'STS3215_03a_v1_2_Revolute_51',
+      'STS3215_03a_v1_3_Revolute_53',
+      'STS3215_03a_Wrist_Roll_v1_Revolute_55',
+      'STS3215_03a_v1_4_Revolute_57'],
+    points: [
+      {positions: [0,0,0,0,0,0], time_from_start: {sec: 0}},
+      {positions: [0.1,0.2,-0.3,0.3,0.0,0.1], time_from_start: {sec: 4}}
+    ]}}"
+```
+
+### 5.4 카메라/Perception (옵션)
+
+```
+./lekiwi_playground/start_lekiwi_perception.sh
+```
+
+- `lekiwi_perception/lekiwi_vslam_nav.launch.py`
+  - `camera_bridge_node` : Isaac Sim 카메라 토픽을 Sensor QoS 로 릴레이 (파라미터 YAML도 ROS 2 Jazzy 규격).
+  - `image_proc` 패키지의 `debayer_node` → `rectify_node` 를 직렬로 실행해 RGB Debayer + Rectify 파이프라인을 만든다.
+- 기본 토픽 흐름:
+  - `/lekiwi/camera/front/image_raw` → debayer → `/lekiwi/perception/front/image_color`
+  - `/lekiwi/perception/front/image_color` + `/lekiwi/camera/front/camera_info` → rectify → `/lekiwi/perception/front/image_rect`
+  - `/lekiwi/perception/front/camera_info` 는 camera_bridge에서 그대로 릴레이된다.
+
+해당 토픽을 직접 SLAM/VIO 노드 입력으로 사용하면 됩니다. (예: `isaac_ros_visual_slam` 또는 `rtabmap_ros`).
+
+---
+
+## 6. End-to-End 예시
+
+1. 모든 스크립트 실행 (Isaac / Bringup / Nav2 / MoveIt / Perception).
+2. Isaac Sim Play 버튼 활성화.
+3. MoveIt RViz 에서 목표 Pose 선택 후 `Plan and Execute`.
+4. Nav2 RViz2(기본 Nav2 UI) 에서 Goal Pose 지정 → `/cmd_vel` 이 발행되며 베이스 이동.
+5. 카메라 토픽이 `ros2 topic hz /lekiwi/perception/front/image_raw` 로 정상 발행되는지 확인.
+
+---
+
+## 7. Troubleshooting
+
+| 증상 | 조치 |
+| --- | --- |
+| Isaac Script 실행 시 `Could not create node ...` | Extension(`isaacsim.ros2.bridge`, `isaacsim.core.nodes`) 활성화, Script Editor에서 `Window → Extensions` 확인. |
+| `/joint_command` 가 계속 0 | `start_lekiwi_bridge.sh` 로 JointState 변환 노드가 떠 있는지 확인. 필요 시 `ros2 topic echo /joint_commands` 로 상위 신호 검사. |
+| Nav2 Goal 을 주어도 움직이지 않음 | `/cmd_vel` 이 발행되는지 (`ros2 topic echo /cmd_vel`). Isaac 그래프가 JointState 구독중인지 확인 (`set_omnigraph_jointstate.py`). |
+| MoveIt 실행 시 Isaac 반응 없음 | Trajectory executor 로그에서 Goal 성공 여부 확인. Isaac Action Graph 에 `ROS2SubscribeJointState` 가 연결되어야 함. RViz 의 `Execute` 결과가 `0` 인지 확인. |
+| Camera Topic 이 비어 있음 | Isaac 씬에 Camera prim 존재하는지 확인. `set_omnigraph_camera.py` 실행 후 Console 에 prim path 출력 확인. |
+| `colcon build` 시 루트 `setup.py` 관련 에러 | `colcon build --base-paths src` 를 사용해 ROS 패키지만 빌드. |
+| YAML 파싱 에러: `Cannot have a value before ros__parameters` | Jazzy의 파라미터 파일은 항상 `<노드명>:\n  ros__parameters:` 구조여야 한다. `lekiwi_*` config들을 이 형식으로 유지하고 launch 에서 동일한 노드 이름을 사용한다. |
+| Nav2 costmap `height` 타입 오류 | `nav2_params.yaml` 에서 height, width, resolution 등 숫자 필드는 `5.0` 처럼 실수 리터럴로 작성한다. |
+| `/joint_command` QoS 경고 | `lekiwi_trajectory_bridge` 는 RELIABLE/KEEP_LAST QoS로 JointState 를 퍼블리시하므로 Isaac OG 의 JointState 구독도 동일 QoS 로 설정되어야 한다. 필요 시 Action Graph side QoS 설정을 확인한다. |
+
+---
+
+## 8. Reference Commands
+
+```bash
+# Isaac Action Graph 생성 (Script Editor 내)
+python scripts/lekiwi/set_omnigraph_jointstate.py
+python scripts/lekiwi/set_omnigraph_camera.py
+
+# ROS Bringup / Nav2 / MoveIt / Perception
+./lekiwi_playground/start_lekiwi_bringup.sh
+./lekiwi_playground/start_lekiwi_nav2.sh
+./lekiwi_playground/start_lekiwi_moveit2.sh
+./lekiwi_playground/start_lekiwi_perception.sh   # Optional
+
+# Quick motion test
+ros2 topic pub /joint_commands std_msgs/msg/Float64MultiArray "data: [0,0.2,-0.3,0.3,0,0,0,0,0]" -r 5
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist '{linear: {x:0.1, y:0.0}, angular: {z:0.5}}' -r 10
+```
+
+이 가이드를 따르면 Isaac Sim 에서 Nav2 + MoveIt2 로 LeKiwi 를 이동/조작하고, 카메라까지 ROS 2 파이프라인에 연결할 수 있습니다. 문제가 발생하면 각 패키지의 launch 로그와 `ros2 topic list`/`ros2 action list` 를 먼저 확인하세요.

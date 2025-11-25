@@ -1,0 +1,14 @@
+controller_names:
+  - lekiwi_arm_controller
+
+lekiwi_arm_controller:
+  action_ns: follow_joint_trajectory
+  type: FollowJointTrajectory
+  default: true
+  joints:
+    - STS3215_03a_v1_Revolute_45
+    - STS3215_03a_v1_1_Revolute_49
+    - STS3215_03a_v1_2_Revolute_51
+    - STS3215_03a_v1_3_Revolute_53
+    - STS3215_03a_Wrist_Roll_v1_Revolute_55
+    - STS3215_03a_v1_4_Revolute_57

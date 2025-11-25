@@ -1,0 +1,13 @@
+lekiwi_arm_trajectory_executor:
+  ros__parameters:
+    action_name: /lekiwi_arm_controller/follow_joint_trajectory
+    output_topic: /joint_command
+    publish_rate_hz: 200.0
+    goal_tolerance: 0.01
+    joint_names:
+      - STS3215_03a_v1_Revolute_45
+      - STS3215_03a_v1_1_Revolute_49
+      - STS3215_03a_v1_2_Revolute_51
+      - STS3215_03a_v1_3_Revolute_53
+      - STS3215_03a_Wrist_Roll_v1_Revolute_55
+      - STS3215_03a_v1_4_Revolute_57

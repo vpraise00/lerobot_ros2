@@ -1,0 +1,209 @@
+# Central QoS Profile Configuration for LeKiwi Robot
+# All nodes should load QoS settings from this file for consistency
+# Ensures compatibility with Isaac Sim and proper ROS2 communication
+
+qos_profiles:
+  # Joint states from Isaac Sim to robot_state_publisher
+  # MUST be RELIABLE to match Isaac Sim's publisher
+  joint_states:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 10
+    deadline:
+      sec: 0
+      nsec: 100000000  # 100ms deadline
+    lifespan:
+      sec: 1
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 2
+      nsec: 0
+
+  # TF transforms - high reliability required
+  tf:
+    reliability: reliable
+    durability: transient_local  # Late joiners get recent transforms
+    history: keep_last
+    depth: 100
+    deadline:
+      sec: 0
+      nsec: 0  # No deadline
+    lifespan:
+      sec: 10
+      nsec: 0  # Transforms valid for 10 seconds
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 0
+      nsec: 0
+
+  # Joint commands to Isaac Sim - RELIABLE for guaranteed delivery
+  joint_commands:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 1  # Only latest command matters
+    deadline:
+      sec: 0
+      nsec: 50000000  # 50ms deadline for real-time control
+    lifespan:
+      sec: 1
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 1
+      nsec: 0
+
+  # Velocity commands (cmd_vel) - can be best_effort for performance
+  velocity_commands:
+    reliability: best_effort
+    durability: volatile
+    history: keep_last
+    depth: 1
+    deadline:
+      sec: 0
+      nsec: 100000000  # 100ms deadline
+    lifespan:
+      sec: 0
+      nsec: 500000000  # 500ms validity
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 1
+      nsec: 0
+
+  # Odometry publishing
+  odometry:
+    reliability: reliable
+    durability: volatile
+    history: keep_last
+    depth: 10
+    deadline:
+      sec: 0
+      nsec: 100000000  # 100ms
+    lifespan:
+      sec: 1
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 2
+      nsec: 0
+
+  # Camera images - best_effort for performance
+  camera_images:
+    reliability: best_effort
+    durability: volatile
+    history: keep_last
+    depth: 5
+    deadline:
+      sec: 0
+      nsec: 200000000  # 200ms
+    lifespan:
+      sec: 1
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 2
+      nsec: 0
+
+  # Camera info - RELIABLE to ensure calibration received
+  camera_info:
+    reliability: reliable
+    durability: transient_local  # Late joiners get calibration
+    history: keep_last
+    depth: 1
+    deadline:
+      sec: 0
+      nsec: 0
+    lifespan:
+      sec: 0
+      nsec: 0  # Infinite
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 0
+      nsec: 0
+
+  # Point clouds - best_effort, can tolerate drops
+  point_clouds:
+    reliability: best_effort
+    durability: volatile
+    history: keep_last
+    depth: 2
+    deadline:
+      sec: 0
+      nsec: 500000000  # 500ms
+    lifespan:
+      sec: 2
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 3
+      nsec: 0
+
+  # Planning scene updates - RELIABLE
+  planning_scene:
+    reliability: reliable
+    durability: transient_local
+    history: keep_last
+    depth: 10
+    deadline:
+      sec: 0
+      nsec: 0
+    lifespan:
+      sec: 0
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 0
+      nsec: 0
+
+  # Sensor data (IMU, lidar, etc.) - typically best_effort
+  sensors:
+    reliability: best_effort
+    durability: volatile
+    history: keep_last
+    depth: 5
+    deadline:
+      sec: 0
+      nsec: 100000000
+    lifespan:
+      sec: 1
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 2
+      nsec: 0
+
+  # System-critical data (robot state, health) - RELIABLE
+  system_state:
+    reliability: reliable
+    durability: transient_local
+    history: keep_last
+    depth: 10
+    deadline:
+      sec: 0
+      nsec: 200000000  # 200ms
+    lifespan:
+      sec: 5
+      nsec: 0
+    liveliness: automatic
+    liveliness_lease_duration:
+      sec: 3
+      nsec: 0
+
+# Default profile if no specific profile specified
+default:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+  deadline:
+    sec: 0
+    nsec: 0
+  lifespan:
+    sec: 0
+    nsec: 0
+  liveliness: automatic
+  liveliness_lease_duration:
+    sec: 0
+    nsec: 0
