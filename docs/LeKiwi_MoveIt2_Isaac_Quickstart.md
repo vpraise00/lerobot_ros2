@@ -13,14 +13,15 @@ rosdep update
 ```
 
 ## 2) 워크스페이스 준비
-### URDF 내려받기
-LeKiwi URDF를 깃허브에서 받아 `src/lekiwi_description/urdf/lekiwi/lekiwi.urdf` 경로에 둡니다.
-```
+### URDF + 메쉬 내려받기
+LeKiwi URDF는 메쉬(STL)와 함께 사용해야 합니다. 깃허브 리포 전체를 클론해 `urdf/lekiwi` 디렉터리를 복사하세요.
+```bash
 cd ~/workspace/lerobot_ros2
-mkdir -p src/lekiwi_description/urdf/lekiwi
-curl -L https://raw.githubusercontent.com/kabilankb/lekiwi_isaacsim/main/urdf/lekiwi/lekiwi.urdf \
-  -o src/lekiwi_description/urdf/lekiwi/lekiwi.urdf
+git clone https://github.com/kabilankb/lekiwi_isaacsim.git /tmp/lekiwi_isaacsim
+mkdir -p urdf
+cp -r /tmp/lekiwi_isaacsim/urdf/lekiwi ./urdf/
 ```
+URDF는 절대 경로로 `/home/<user>/workspace/lerobot_ros2/urdf/lekiwi/meshes/*.stl`을 바라보므로 위 위치를 그대로 유지하세요.
 
 ### 의존 설치/빌드
 ```bash
