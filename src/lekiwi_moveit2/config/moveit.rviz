@@ -1,9 +1,46 @@
 Panels:
   - Class: rviz_common/Displays
     Name: Displays
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+    Expanded:
+      - /Grid
+    Splitter Ratio: 0.5
+  - Class: rviz_common/Views
+    Name: Views
+
 Visualization Manager:
   Class: ""
   Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Color: 160; 160; 160
+      Plane: XY
+      Plane Cell Count: 20
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
+      Reference Frame: <Fixed Frame>
+
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Alpha: 1
+      Robot Description: robot_description
+      Visual Enabled: true
+      Collision Enabled: false
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: false
+      Frame Timeout: 5
+      Marker Scale: 0.3
+      Show Names: false
+
     - Class: moveit_rviz_plugin/MotionPlanning
       Name: MotionPlanning
       Enabled: true
@@ -11,4 +48,29 @@ Visualization Manager:
       Robot Description: robot_description
       Scene Geometry:
         Scene Display Time: 3
+      Planning Request:
+        Planning Group: arm
+        Planner ID: ompl
+
   Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base_plate_layer1_v5
+    Frame Rate: 30
+
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Orbit
+      Distance: 1.5
+      Pitch: 0.6
+      Yaw: 0.9
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+    Saved: []

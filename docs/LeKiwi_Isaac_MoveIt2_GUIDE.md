@@ -79,6 +79,14 @@ Run MoveIt + trajectory executor (FollowJointTrajectory → `/joint_command`):
   ros2 topic pub /joint_command sensor_msgs/JointState "{name: ['STS3215_03a_v1_Revolute_45'], position: [0.2]}"
   ```
 
+### RViz 고정 프레임 주의
+- LeKiwi URDF의 루트 링크는 `base_plate_layer1_v5`입니다. RViz Global Options의 Fixed Frame을 `base_plate_layer1_v5`로 설정하세요. 기본값 `base_link`로 두면 “Frame [base_link] does not exist” 에러가 뜹니다.
+- 만약 `base_link` 이름이 꼭 필요하면 임시 정적 TF로 매핑할 수 있습니다:
+  ```bash
+  ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 base_plate_layer1_v5 base_link
+  ```
+  (권장: Fixed Frame만 올바르게 바꾸는 방법)
+
 ## If something is off
 - Planning scene를 RViz가 못 받을 때:
   - `start_planning_scene_bridge.sh`로 QoS 브리지 실행 후,
