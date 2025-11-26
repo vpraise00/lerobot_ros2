@@ -29,7 +29,7 @@ class KiwiBaseController(Node):
         super().__init__("lekiwi_kiwi_base_controller")
 
         self.declare_parameter("input_topic", "/cmd_vel")
-        self.declare_parameter("output_topic", "/joint_command")
+        self.declare_parameter("output_topic", "/wheel_command")  # Separate from arm's /joint_command
         self.declare_parameter(
             "joint_names",
             [
@@ -197,6 +197,10 @@ class KiwiBaseController(Node):
         # Compute base velocity from wheel velocities (forward kinematics)
         vx, vy, omega = self._compute_base_velocity(self._actual_wheel_velocities)
 
+        # Protect against NaN/Inf values
+        if not (math.isfinite(vx) and math.isfinite(vy) and math.isfinite(omega)):
+            return
+
         # Store velocities
         self._odom_vx = vx
         self._odom_vy = vy
@@ -219,6 +223,13 @@ class KiwiBaseController(Node):
 
     def _publish_odometry(self, timestamp) -> None:
         """Publish odometry message and TF transform."""
+        # Skip if any odom value is NaN/Inf
+        if not (math.isfinite(self._odom_x) and math.isfinite(self._odom_y) and math.isfinite(self._odom_theta)):
+            # Reset to zero if corrupted
+            self._odom_x = 0.0
+            self._odom_y = 0.0
+            self._odom_theta = 0.0
+
         # Create quaternion from yaw
         qz = math.sin(self._odom_theta / 2.0)
         qw = math.cos(self._odom_theta / 2.0)

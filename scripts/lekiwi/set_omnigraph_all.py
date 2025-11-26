@@ -1,24 +1,21 @@
 """
-Unified Action Graph for LeKiwi in Isaac Sim (single graph).
-- Joint command/state bridge (JointState on /joint_command → Articulation; /joint_states publish).
-- Two cameras → ROS2CameraHelper:
-    /lekiwi/camera/front/image_raw  (Camera_Model_v3)
-    /lekiwi/camera/rear/image_raw   (Camera_Model_v3_1)
+Unified Action Graph for LeKiwi in Isaac Sim.
+- /joint_command: Arm position control (for MoveIt2)
+- /wheel_command: Wheel velocity control (for teleop, no position to avoid ±2π errors)
+- Joint state publish (/joint_states), TF (/tf), Clock (/clock), Cameras all included.
 
-Prereq: Run set_lekiwi_cameras.py once so Camera prims exist under LeKiwi anchors.
-
-Run from Isaac Sim Script Editor (absolute path recommended):
+Run from Isaac Sim Script Editor:
     exec(open("/home/vpraise/workspace/lerobot_ros2/scripts/lekiwi/set_omnigraph_all.py").read())
 """
 
 import omni.graph.core as og
 import omni.usd
 from pxr import Usd, UsdGeom, UsdPhysics, Sdf
-from pxr import UsdPhysics
 
 GRAPH_PATH = "/World/LeKiwi/ActionGraph"
-ARTICULATION_ROOT = "/World/LeKiwi"  # fallback default
-JOINT_CMD_TOPIC = "/joint_command"
+ARTICULATION_ROOT = "/World/LeKiwi"
+ARM_CMD_TOPIC = "/joint_command"      # For MoveIt2 (position control)
+WHEEL_CMD_TOPIC = "/wheel_command"    # For teleop (velocity only)
 JOINT_STATE_TOPIC = "/joint_states"
 
 CAMERAS = [
@@ -61,7 +58,6 @@ def _ensure_articulation_root(root_prim):
         if hasattr(api, "CreateEnabledAttr"):
             api.CreateEnabledAttr(True)
         else:
-            # Fallback: set attribute manually
             attr = root_prim.CreateAttribute("physics:articulation:enabled", Sdf.ValueTypeNames.Bool)
             attr.Set(True)
         print(f"[LeKiwi Setup] Enabled ArticulationRootAPI on {root_prim.GetPath()}.")
@@ -83,7 +79,6 @@ def _resolve_camera(stage, root, anchor_name: str) -> str:
         if ok:
             return path
 
-    # Fallback: any camera under LeKiwi
     if root is None:
         raise RuntimeError("Cannot find LeKiwi root; set the robot prim under /World.")
     for prim in Usd.PrimRange(root):
@@ -118,13 +113,20 @@ def main() -> None:
         {
             og.Controller.Keys.CREATE_NODES: [
                 ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
-                ("ReadTime", "isaacsim.core.nodes.IsaacReadSystemTime"),  # Use wall-clock to match ROS nodes by default
-                ("Context", "isaacsim.ros2.bridge.ROS2Context"),  # Explicit ROS2 context so discovery is deterministic
+                ("ReadTime", "isaacsim.core.nodes.IsaacReadSystemTime"),
+                ("Context", "isaacsim.ros2.bridge.ROS2Context"),
                 ("PublishJointState", "isaacsim.ros2.bridge.ROS2PublishJointState"),
-                ("SubscribeJointState", "isaacsim.ros2.bridge.ROS2SubscribeJointState"),
-                ("ArticulationController", "isaacsim.core.nodes.IsaacArticulationController"),
                 ("PublishClock", "isaacsim.ros2.bridge.ROS2PublishClock"),
                 ("PublishTF", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
+
+                # Arm control - /joint_command (position control for MoveIt2)
+                ("SubscribeArmCommand", "isaacsim.ros2.bridge.ROS2SubscribeJointState"),
+                ("ArmController", "isaacsim.core.nodes.IsaacArticulationController"),
+
+                # Wheel control - /wheel_command (velocity only for teleop)
+                ("SubscribeWheelCommand", "isaacsim.ros2.bridge.ROS2SubscribeJointState"),
+                ("WheelController", "isaacsim.core.nodes.IsaacArticulationController"),
+
                 # Camera 1
                 ("CreateRenderProduct1", "isaacsim.core.nodes.IsaacCreateRenderProduct"),
                 ("CameraHelper1", "isaacsim.ros2.bridge.ROS2CameraHelper"),
@@ -135,17 +137,20 @@ def main() -> None:
             og.Controller.Keys.CONNECT: [
                 # Tick flow
                 ("OnPlaybackTick.outputs:tick", "PublishJointState.inputs:execIn"),
-                ("OnPlaybackTick.outputs:tick", "SubscribeJointState.inputs:execIn"),
-                ("OnPlaybackTick.outputs:tick", "ArticulationController.inputs:execIn"),
+                ("OnPlaybackTick.outputs:tick", "SubscribeArmCommand.inputs:execIn"),
+                ("OnPlaybackTick.outputs:tick", "SubscribeWheelCommand.inputs:execIn"),
+                ("OnPlaybackTick.outputs:tick", "ArmController.inputs:execIn"),
+                ("OnPlaybackTick.outputs:tick", "WheelController.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "CreateRenderProduct1.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "CreateRenderProduct2.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "PublishClock.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "PublishTF.inputs:execIn"),
                 ("ReadTime.outputs:systemTime", "PublishTF.inputs:timeStamp"),
 
-                # Tie all ROS nodes to the same context (Domain ID / RMW)
+                # ROS2 Context for all nodes
                 ("Context.outputs:context", "PublishJointState.inputs:context"),
-                ("Context.outputs:context", "SubscribeJointState.inputs:context"),
+                ("Context.outputs:context", "SubscribeArmCommand.inputs:context"),
+                ("Context.outputs:context", "SubscribeWheelCommand.inputs:context"),
                 ("Context.outputs:context", "PublishClock.inputs:context"),
                 ("Context.outputs:context", "PublishTF.inputs:context"),
                 ("Context.outputs:context", "CameraHelper1.inputs:context"),
@@ -155,11 +160,17 @@ def main() -> None:
                 ("ReadTime.outputs:systemTime", "PublishJointState.inputs:timeStamp"),
                 ("ReadTime.outputs:systemTime", "PublishClock.inputs:timeStamp"),
 
-                # JointState → Articulation
-                ("SubscribeJointState.outputs:jointNames", "ArticulationController.inputs:jointNames"),
-                ("SubscribeJointState.outputs:positionCommand", "ArticulationController.inputs:positionCommand"),
-                ("SubscribeJointState.outputs:velocityCommand", "ArticulationController.inputs:velocityCommand"),
-                ("SubscribeJointState.outputs:effortCommand", "ArticulationController.inputs:effortCommand"),
+                # Arm Controller - Full control (position, velocity, effort) for MoveIt2
+                ("SubscribeArmCommand.outputs:jointNames", "ArmController.inputs:jointNames"),
+                ("SubscribeArmCommand.outputs:positionCommand", "ArmController.inputs:positionCommand"),
+                ("SubscribeArmCommand.outputs:velocityCommand", "ArmController.inputs:velocityCommand"),
+                ("SubscribeArmCommand.outputs:effortCommand", "ArmController.inputs:effortCommand"),
+
+                # Wheel Controller - Velocity only (NO positionCommand to avoid ±2π errors!)
+                ("SubscribeWheelCommand.outputs:jointNames", "WheelController.inputs:jointNames"),
+                # ("SubscribeWheelCommand.outputs:positionCommand", "WheelController.inputs:positionCommand"),  # DISABLED!
+                ("SubscribeWheelCommand.outputs:velocityCommand", "WheelController.inputs:velocityCommand"),
+                ("SubscribeWheelCommand.outputs:effortCommand", "WheelController.inputs:effortCommand"),
 
                 # Camera 1 render product → ROS2 helper
                 ("CreateRenderProduct1.outputs:execOut", "CameraHelper1.inputs:execIn"),
@@ -170,13 +181,22 @@ def main() -> None:
                 ("CreateRenderProduct2.outputs:renderProductPath", "CameraHelper2.inputs:renderProductPath"),
             ],
             og.Controller.Keys.SET_VALUES: [
-                ("ArticulationController.inputs:robotPath", robot_root_path),
+                # Arm controller - /joint_command (for MoveIt2)
+                ("ArmController.inputs:robotPath", robot_root_path),
+                ("SubscribeArmCommand.inputs:topicName", ARM_CMD_TOPIC),
+
+                # Wheel controller - /wheel_command (for teleop)
+                ("WheelController.inputs:robotPath", robot_root_path),
+                ("SubscribeWheelCommand.inputs:topicName", WHEEL_CMD_TOPIC),
+
+                # Joint state publisher
                 ("PublishJointState.inputs:targetPrim", robot_root_path),
                 ("PublishJointState.inputs:topicName", JOINT_STATE_TOPIC),
-                ("SubscribeJointState.inputs:topicName", JOINT_CMD_TOPIC),
+
+                # Clock and TF
                 ("PublishClock.inputs:topicName", "/clock"),
                 ("PublishTF.inputs:topicName", "/tf"),
-                ("Context.inputs:useDomainIDEnvVar", True),  # Follow ROS_DOMAIN_ID from environment
+                ("Context.inputs:useDomainIDEnvVar", True),
 
                 # Camera 1
                 ("CreateRenderProduct1.inputs:cameraPrim", camera_prim_paths[0][0]),
@@ -197,7 +217,7 @@ def main() -> None:
         },
     )
 
-    # Try to set PublishTF target prim if the attribute exists (Isaac versions differ on the input name)
+    # Set PublishTF target prim
     try:
         tf_attr = og.Controller.attribute(f"{GRAPH_PATH}/PublishTF.inputs:targetPrims")
         if tf_attr is not None:
@@ -205,7 +225,14 @@ def main() -> None:
     except Exception:
         print("[LeKiwi Setup] Warning: PublishTF targetPrims attribute not found; set it manually if needed.")
 
-    print(f"[LeKiwi Setup] Unified Action Graph with dual cameras created at {GRAPH_PATH}. Press Play to start.")
+    print("=" * 70)
+    print(f"[LeKiwi Setup] Action Graph created at {GRAPH_PATH}")
+    print("")
+    print("  /joint_command  -> ArmController (position) for MoveIt2")
+    print("  /wheel_command  -> WheelController (velocity only) for teleop")
+    print("")
+    print("  No more ±2π errors for continuous wheel rotation!")
+    print("=" * 70)
 
 
 if __name__ == "__main__":

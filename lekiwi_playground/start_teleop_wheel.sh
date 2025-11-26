@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # LeKiwi wheel teleop (all-in-one)
-# - 백그라운드: KiwiBaseController (/cmd_vel -> /joint_command, odom/TF)
+# - 백그라운드: KiwiBaseController (/cmd_vel -> /wheel_command, odom/TF)
 # - 포그라운드: teleop_twist_keyboard (/cmd_vel 발행)
-# MoveIt2와 동시 사용 가능 (팔/바퀴 조인트 분리)
+# MoveIt2와 동시 사용 가능 (팔: /joint_command, 바퀴: /wheel_command)
 
 set -euo pipefail
 
@@ -30,24 +30,42 @@ echo "[2/3] ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-<not set>} (must match Isaac Sim)"
 echo "      USE_SIM_TIME: ${USE_SIM_TIME}"
 echo
 
-# Cleanup function
+CONTROLLER_PID=""
+
+# Cleanup function - kill controller process
 cleanup() {
   echo
   echo "[INFO] Shutting down..."
+
+  # Kill controller
   if [ -n "${CONTROLLER_PID:-}" ]; then
-    kill "${CONTROLLER_PID}" 2>/dev/null || true
-    wait "${CONTROLLER_PID}" 2>/dev/null || true
+    echo "[INFO] Stopping controller (PID: $CONTROLLER_PID)..."
+    kill -TERM "$CONTROLLER_PID" 2>/dev/null || true
+    sleep 0.5
+    kill -KILL "$CONTROLLER_PID" 2>/dev/null || true
   fi
+
+  # Kill any orphaned processes from this script
+  pkill -P $$ 2>/dev/null || true
+
   echo "[INFO] Done."
 }
-trap cleanup EXIT INT TERM
+
+# Set trap for all exit signals
+trap cleanup EXIT INT TERM QUIT HUP
 
 echo "[3/3] Starting KiwiBaseController (background)..."
 ros2 run lekiwi_base_control lekiwi_kiwi_base_controller \
-  --ros-args -p use_sim_time:=${USE_SIM_TIME} -p output_topic:=/joint_command &
+  --ros-args -p use_sim_time:=${USE_SIM_TIME} -p output_topic:=/wheel_command &
 CONTROLLER_PID=$!
 
 sleep 1
+
+# Verify controller started
+if ! kill -0 "$CONTROLLER_PID" 2>/dev/null; then
+  echo "[ERROR] Controller failed to start!"
+  exit 1
+fi
 
 echo
 echo "========================================"
@@ -57,9 +75,13 @@ echo "  i/k : forward / backward"
 echo "  j/l : strafe left / right"
 echo "  u/o : rotate CCW / CW"
 echo "  space : stop"
-echo "  q : quit"
+echo "  q or Ctrl+C : quit"
 echo "========================================"
 echo
 
-exec ros2 run teleop_twist_keyboard teleop_twist_keyboard \
+# Run teleop in FOREGROUND (needs terminal access for keyboard input)
+# When teleop exits, cleanup will be called via trap
+ros2 run teleop_twist_keyboard teleop_twist_keyboard \
   --ros-args -r cmd_vel:=/cmd_vel
+
+# cleanup will be called automatically via trap

@@ -7,9 +7,9 @@ stage = omni.usd.get_context().get_stage()
 
 # LeKiwi wheel joint paths
 wheel_joints = [
-    "/World/LeKiwi/base_plate_layer1_v5/ST3215_Servo_Motor_v1_2_Revolute_60",
-    "/World/LeKiwi/base_plate_layer1_v5/ST3215_Servo_Motor_v1_1_Revolute_62",
-    "/World/LeKiwi/base_plate_layer1_v5/ST3215_Servo_Motor_v1_Revolute_64",
+    "/World/LeKiwi/joints/ST3215_Servo_Motor_v1_2_Revolute_60",
+    "/World/LeKiwi/joints/ST3215_Servo_Motor_v1_1_Revolute_62",
+    "/World/LeKiwi/joints/ST3215_Servo_Motor_v1_Revolute_64",
 ]
 
 for joint_path in wheel_joints:
