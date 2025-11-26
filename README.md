@@ -97,7 +97,10 @@ python scripts/fix_goal_position.py --config configs/robot/my_robot.yaml
   - Hardware setup and calibration
   - ROS2 and MoveIt integration
   - Troubleshooting guide
-- **LeKiwi**: [MoveIt2 + Isaac Quickstart](docs/LeKiwi_MoveIt2_Isaac_Quickstart.md) - Isaac Sim에서 LeKiwi 팔을 MoveIt2로 바로 구동하기 위한 단일 가이드
+
+- **[LeKiwi](docs/LeKiwi_MoveIt2_Isaac_Quickstart.md)**: - MoveIt2 + Isaac Quickstart
+  - Guide for controlling LeKiwi arm in Isaac Sim with MoveIt2
+  - Guide for controlling LeKiwi wheel base with
 
 - **[Scripts Reference](docs/SCRIPTS_REFERENCE.md)** - Complete script reference
   - Detailed usage for each script
